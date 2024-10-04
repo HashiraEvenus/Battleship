@@ -5,6 +5,15 @@ import random
 # Initialize Pygame
 pygame.init()
 
+# Load and scale the icon image for the main menu
+menu_icon_image = pygame.image.load('Assets/ship_horizontal.png')
+icon_size = (150, 150)  # Adjust the size as desired
+menu_icon_image = pygame.transform.scale(menu_icon_image, icon_size)
+
+# Set the window icon (small icon in title bar)
+icon_image = pygame.image.load('Assets/ship_horizontal.png')
+pygame.display.set_icon(icon_image)
+
 # CONSTANTS
 SCREEN_WIDTH = 1000
 SCREEN_HEIGHT = 800
@@ -23,11 +32,11 @@ ai_grid_x = player_grid_x + GRID_WIDTH + SPACING_BETWEEN_GRIDS
 ai_grid_y = MARGIN + 50
 
 # Colors
-WHITE = (200, 220, 255)  # Background
-BLACK = (0, 0, 0)        # Grid lines
-BLUE = (0, 0, 255)       # Ships
-GRAY = (128, 128, 128)   # Miss
-RED = (255, 0, 0)        # Hit
+WHITE = (255, 255, 255)    # Background overlay color
+BLACK = (0, 0, 0)          # Grid lines
+BLUE = (30, 144, 255)      # Ships (Dodger Blue)
+GRAY = (169, 169, 169)     # Miss (Dark Gray)
+RED = (220, 20, 60)        # Hit (Crimson)
 
 # Ship sizes
 SHIP_SIZES = [5, 4, 3, 3, 2]
@@ -38,6 +47,14 @@ ai_targets = []
 # Screen setup
 pygame.display.set_caption("Battleship")
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+
+# Load background image
+background_image = pygame.image.load('Assets/background.png')
+background_image = pygame.transform.scale(background_image, (SCREEN_WIDTH, SCREEN_HEIGHT))
+
+# Define fonts globally
+FONT_SMALL = pygame.font.SysFont('Arial', 24)
+FONT_LARGE = pygame.font.SysFont('Arial', 60)
 
 # Ship class
 class Ship:
@@ -85,7 +102,9 @@ def main_menu():
                     sys.exit()
 
         # Draw the menu
-        screen.fill(WHITE)
+        # Replace filling the screen with blitting the background image
+        # screen.fill(WHITE)
+        screen.blit(background_image, (0, 0))
 
         # Draw title
         title_text = title_font.render('Battleship', True, BLACK)
@@ -149,7 +168,9 @@ def game_over_screen(winner):
                     sys.exit()
 
         # Draw the game over screen
-        screen.fill(BLACK)
+        # Replace filling the screen with blitting the background image
+        # screen.fill(BLACK)
+        screen.blit(background_image, (0, 0))
 
         # Draw the winner message
         screen.blit(over_text, over_rect)
@@ -188,12 +209,12 @@ def draw_grid(x_start, y_start, grid_size, cell_size):
     for row in range(grid_size + 1):
         pygame.draw.line(screen, BLACK, 
                          (x_start, y_start + row * cell_size),
-                         (x_start + grid_size * cell_size, y_start + row * cell_size))
+                         (x_start + grid_size * cell_size, y_start + row * cell_size), 2)  # Thickness of 2
     # Draw vertical lines
     for col in range(grid_size + 1):
         pygame.draw.line(screen, BLACK,
                          (x_start + col * cell_size, y_start),
-                         (x_start + col * cell_size, y_start + grid_size * cell_size))
+                         (x_start + col * cell_size, y_start + grid_size * cell_size), 2)  # Thickness of 2
 
 # Function to draw hits and misses
 def draw_hits_and_misses(board, x_start, y_start, cell_size):
@@ -271,6 +292,7 @@ def place_ships_manually(board, ships):
     placing_ships = True
     ship_index = 0
     orientation = 'horizontal'  # Default orientation
+    status_message = ""
 
     while placing_ships:
         for event in pygame.event.get():
@@ -305,12 +327,19 @@ def place_ships_manually(board, ships):
                         if ship_index == len(SHIP_SIZES):
                             placing_ships = False  # All ships placed
                         else:
-                            print("Ship placed successfully")
+                            status_message = "Ship placed successfully"
                     else:
-                        print("Invalid placement. Try again.")
+                        status_message = "Invalid placement. Try again."
 
         # Drawing code for ship placement
-        screen.fill(WHITE)
+        # Replace filling the screen with blitting the background image
+        screen.blit(background_image, (0, 0))
+
+        # Create a semi-transparent overlay for the grid
+        grid_overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+        overlay_color = (255, 255, 255, 180)  # Adjust the alpha value as needed
+        grid_overlay.fill(overlay_color)
+        screen.blit(grid_overlay, (0, 0))
 
         # Draw the player's grid
         draw_grid(player_grid_x, player_grid_y, GRID_SIZE, CELL_SIZE)
@@ -335,8 +364,15 @@ def place_ships_manually(board, ships):
             )
             screen.blit(instructions, (50, 20))
 
+        # Render the status message
+        status_text = font.render(status_message, True, BLACK)
+        status_rect = status_text.get_rect(
+            midbottom=(SCREEN_WIDTH // 2, SCREEN_HEIGHT - 10))  # Adjust positioning as needed
+        screen.blit(status_text, status_rect)
+
         # Update the display
-        pygame.display.flip()        
+        pygame.display.flip()
+
 #Function to check if the ship can be placed
 def is_valid_placement(board, row, col, size, orientation):
     for i in range(size):
@@ -351,7 +387,7 @@ def is_valid_placement(board, row, col, size, orientation):
 #Function to draw ship preview
 def draw_ship_preview(screen, row, col, size, orientation, grid_x, grid_y):
     for i in range(size):
-        r = row + i if orientation == 'verical' else row
+        r = row + i if orientation == 'vertical' else row
         c = col if orientation == 'vertical' else col + i
         if 0 <= r < GRID_SIZE and 0 <= c < GRID_SIZE:
             x = grid_x + c * CELL_SIZE
@@ -389,6 +425,7 @@ def main():
     # Initialize game variables
     player_turn = True
     ai_targets.clear()  # Clear any previous AI targets
+    status_message = ""  # Variable to store status messages
 
     # Variable to keep track of the winner
     winner = None
@@ -422,16 +459,19 @@ def main():
                                     if (row, col) in ship.coordinates:
                                         ship.hit()
                                         if ship.is_sunk():
-                                            print("You sunk the AI's battleship!")
+                                            status_message = "You sunk the AI's battleship!"
+                                        else:
+                                            status_message = "Hit!"
                                         break
                                 # Check if all AI ships are sunk
                                 if all(ship.is_sunk() for ship in ai_ships):
-                                    print("Congratulations! You sunk all the enemy's battleships!")
+                                    status_message = "Congratulations! You sunk all the enemy's battleships!"
                                     winner = 'player'
                                     running = False
                             else:
                                 # It's a miss
                                 ai_board[row][col] = 'M'  # 'M' for miss
+                                status_message = "Miss!"
                             player_turn = False  # Switch to AI's turn
 
         # AI's turn
@@ -458,8 +498,9 @@ def main():
                         if (row, col) in ship.coordinates:
                             ship.hit()
                             if ship.is_sunk():
-                                print("The AI sunk your battleship!")
+                                status_message = "The AI sunk your battleship!"
                             else:
+                                status_message = "Your ship was hit!"
                                 # Add adjacent cells to ai_targets
                                 adjacent_cells = get_adjacent_cells(row, col, player_board)
                                 # Avoid duplicates in ai_targets
@@ -469,7 +510,7 @@ def main():
                             break
                     # Check if all player ships are sunk
                     if all(ship.is_sunk() for ship in player_ships):
-                        print('You have lost the battle, Commander. The enemy has won.')
+                        status_message = 'You have lost the battle, Commander. The enemy has won.'
                         winner = 'ai'
                         running = False
                     if not ai_hard_mode:
@@ -477,13 +518,23 @@ def main():
                 else:
                     # It's a miss
                     player_board[row][col] = 'M'
+                    status_message = "The AI missed!"
                     continue_ai_turn = False  # AI's turn ends after a miss
             player_turn = True  # Switch back to player's turn
 
-        # Fill the screen with white
-        screen.fill(WHITE)
+        # Fill the screen with the background image
+        # screen.fill(WHITE)
+        screen.blit(background_image, (0, 0))
 
-        # Draw grids
+        # Create a semi-transparent overlay for the grids
+        grid_overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+        overlay_color = (255, 255, 255, 180)  # RGBA, where A is the alpha value
+        grid_overlay.fill(overlay_color)  # Fill the overlay with a semi-transparent color
+
+        # Blit the overlay onto the screen
+        screen.blit(grid_overlay, (0, 0))
+
+        # Draw grids onto the screen (over the overlay)
         draw_grid(player_grid_x, player_grid_y, GRID_SIZE, CELL_SIZE)
         draw_grid(ai_grid_x, ai_grid_y, GRID_SIZE, CELL_SIZE)
 
@@ -494,6 +545,12 @@ def main():
 
         # Draw hits and misses on AI's grid
         draw_hits_and_misses(ai_board, ai_grid_x, ai_grid_y, CELL_SIZE)
+
+        # Render the status message
+        status_text = FONT_SMALL.render(status_message, True, BLACK)
+        status_rect = status_text.get_rect(
+            midbottom=(SCREEN_WIDTH // 2, SCREEN_HEIGHT - 10))
+        screen.blit(status_text, status_rect)
 
         # Update the display
         pygame.display.flip()
