@@ -1,0 +1,12 @@
+WIDTH, HEIGHT = 800, 600
+GRID_SIZE = 10
+CELL_SIZE = 40
+MARGIN = 50
+
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+BLUE = (0, 0, 255)
+RED = (255, 0, 0)
+GRAY = (128, 128, 128)
+
+SHIPS = [5, 4, 3, 3, 2]
