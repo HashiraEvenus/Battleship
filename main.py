@@ -270,9 +270,8 @@ def place_ships_randomly(grid, ships):
 def place_ships_manually(board, ships):
     placing_ships = True
     ship_index = 0
-    orientation = 'horizontal' #default orientation
-    selected_cells = []
-    
+    orientation = 'horizontal'  # Default orientation
+
     while placing_ships:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -280,56 +279,65 @@ def place_ships_manually(board, ships):
                 sys.exit()
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_r:
-                    # rotate the ship
+                    # Rotate the ship
                     orientation = 'vertical' if orientation == 'horizontal' else 'horizontal'
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 mouse_x, mouse_y = pygame.mouse.get_pos()
-                #Now check if click is withing the player's grid
+                # Now check if click is within the player's grid
                 if (player_grid_x <= mouse_x < player_grid_x + GRID_WIDTH and
                     player_grid_y <= mouse_y < player_grid_y + GRID_WIDTH):
-                    col = (mouse_x - player_grid_x) // CELL_SIZE
-                    row = (mouse_y - player_grid_y) // CELL_SIZE
-                    
-                    #Attempt to place the ship
+                    col = int((mouse_x - player_grid_x) // CELL_SIZE)
+                    row = int((mouse_y - player_grid_y) // CELL_SIZE)
+
+                    # Attempt to place the ship
                     ship_size = SHIP_SIZES[ship_index]
                     if is_valid_placement(board, row, col, ship_size, orientation):
-                        #Place the ship
+                        # Place the ship
                         new_ship = Ship(ship_size)
                         new_ship.orientation = orientation
                         for i in range(ship_size):
-                            r = row + (i if orientation == 'vertical' else row)
+                            r = row + i if orientation == 'vertical' else row
                             c = col if orientation == 'vertical' else col + i
                             board[r][c] = 'S'
                             new_ship.coordinates.append((r, c))
                         ships.append(new_ship)
                         ship_index += 1
-                        if ship_index == (len(SHIP_SIZES)):
-                            placing_ships = False
+                        if ship_index == len(SHIP_SIZES):
+                            placing_ships = False  # All ships placed
                         else:
-                            print("Ships places successfully")
-    screen.fill(WHITE)
+                            print("Ship placed successfully")
+                    else:
+                        print("Invalid placement. Try again.")
+
+        # Drawing code for ship placement
+        screen.fill(WHITE)
 
         # Draw the player's grid
-    draw_grid(player_grid_x, player_grid_y, GRID_SIZE, CELL_SIZE)
-    draw_ships(ships, player_grid_x, player_grid_y, CELL_SIZE)
+        draw_grid(player_grid_x, player_grid_y, GRID_SIZE, CELL_SIZE)
+        draw_ships(ships, player_grid_x, player_grid_y, CELL_SIZE)
 
-    # Draw the ship preview
-    mouse_x, mouse_y = pygame.mouse.get_pos()
-    if (player_grid_x <= mouse_x < player_grid_x + GRID_WIDTH and
-        player_grid_y <= mouse_y < player_grid_y + GRID_WIDTH):
-        col = int((mouse_x - player_grid_x) // CELL_SIZE)
-        row = int((mouse_y - player_grid_y) // CELL_SIZE)
-        ship_size = SHIP_SIZES[ship_index]
-        draw_ship_preview(screen, row, col, ship_size, orientation, player_grid_x, player_grid_y)
+        if ship_index < len(SHIP_SIZES):
+            # Draw the ship preview
+            mouse_x, mouse_y = pygame.mouse.get_pos()
+            if (player_grid_x <= mouse_x < player_grid_x + GRID_WIDTH and
+                player_grid_y <= mouse_y < player_grid_y + GRID_WIDTH):
+                col = int((mouse_x - player_grid_x) // CELL_SIZE)
+                row = int((mouse_y - player_grid_y) // CELL_SIZE)
+                ship_size = SHIP_SIZES[ship_index]
+                draw_ship_preview(screen, row, col, ship_size, orientation, player_grid_x, player_grid_y)
 
-    # Instructions
-    font = pygame.font.SysFont('Arial', 24)
-    instructions = font.render(f'Place your ships. Press R to rotate. Placing ship of size {SHIP_SIZES[ship_index]}', True, BLACK)
-    screen.blit(instructions, (50, 20))
+            # Instructions
+            font = pygame.font.SysFont('Arial', 24)
+            instructions = font.render(
+                f'Place your ships. Press R to rotate. Placing ship of size {SHIP_SIZES[ship_index]}',
+                True,
+                BLACK
+            )
+            screen.blit(instructions, (50, 20))
 
-    # Update the display
-    pygame.display.flip()
-    
+        # Update the display
+        pygame.display.flip()        
+#Function to check if the ship can be placed
 def is_valid_placement(board, row, col, size, orientation):
     for i in range(size):
         r = row + i if orientation == 'vertical' else row
@@ -353,7 +361,7 @@ def draw_ship_preview(screen, row, col, size, orientation, grid_x, grid_y):
 
 # Main function
 def main():
-    global screen
+    global screen  # Use global if screen is modified within functions
 
     # Get game mode from the main menu
     mode = main_menu()
@@ -372,13 +380,18 @@ def main():
     player_ships = []
     ai_ships = []
 
-    # Place ships randomly for AI and player
+    # AI places ships randomly
     place_ships_randomly(ai_board, ai_ships)
-    #implement function for player to place ships
+
+    # Player places ships manually
     place_ships_manually(player_board, player_ships)
 
-    # Initialize player turn
+    # Initialize game variables
     player_turn = True
+    ai_targets.clear()  # Clear any previous AI targets
+
+    # Variable to keep track of the winner
+    winner = None
 
     # Game loop
     running = True
@@ -395,8 +408,8 @@ def main():
                     if (ai_grid_x <= mouse_x < ai_grid_x + GRID_WIDTH and
                         ai_grid_y <= mouse_y < ai_grid_y + GRID_WIDTH):
                         # Calculate the grid coordinates
-                        col = (mouse_x - ai_grid_x) // CELL_SIZE
-                        row = (mouse_y - ai_grid_y) // CELL_SIZE
+                        col = int((mouse_x - ai_grid_x) // CELL_SIZE)
+                        row = int((mouse_y - ai_grid_y) // CELL_SIZE)
 
                         # Check if this cell has already been attacked
                         if ai_board[row][col] in [' ', 'S']:
@@ -421,6 +434,7 @@ def main():
                                 ai_board[row][col] = 'M'  # 'M' for miss
                             player_turn = False  # Switch to AI's turn
 
+        # AI's turn
         if not player_turn and running:
             continue_ai_turn = True  # Control AI's extended turn in Hard Mode
             while continue_ai_turn and running:
@@ -491,6 +505,5 @@ def main():
     else:
         pygame.quit()
         sys.exit()
-
 if __name__ == '__main__':
     main()

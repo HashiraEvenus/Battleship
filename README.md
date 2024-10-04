@@ -26,7 +26,7 @@ This Battleship game allows you to play against an AI opponent with two difficul
 
 1. Clone the repository:
    ```
-   git clone https://github.com/yourusername/battleship-game.git
+   git clone https://github.com/HashiraEvenus/battleship-game.git
    ```
 2. Navigate to the project directory:
    ```
